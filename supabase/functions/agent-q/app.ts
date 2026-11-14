@@ -3,16 +3,20 @@ import { cors } from "npm:hono@4/cors";
 import { McpServer } from "npm:@modelcontextprotocol/sdk@1.32.2/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "npm:@modelcontextprotocol/sdk@1.32.2/server/webStandardStreamableHttp.js";
 import { z } from "npm:zod@^4.1";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { addedLines, Finding, POLICY, reviewLines, reviewText, summarise, toMarkdown } from "./rules.ts";
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
 const OWNER_DEFAULT = "whatheheckisthis";
 
 const env = (k: string): string | undefined =>
   (globalThis as any).Deno?.env?.get(k) ?? (globalThis as any).process?.env?.[k];
 
+// A caller MAY supply its own GitHub token per request (x-github-token); it is used for that request only and never stored.
+const requestToken = new AsyncLocalStorage<string | undefined>();
+
 async function gh(path: string) {
-  const token = env("GITHUB_TOKEN");
+  const token = requestToken.getStore() ?? env("GITHUB_TOKEN");
   const res = await fetch(`https://api.github.com${path}`, {
     headers: {
       accept: "application/vnd.github+json",
@@ -131,7 +135,7 @@ export function buildServer() {
 
 export function buildApp(basePath = "/agent-q") {
   const app = new Hono().basePath(basePath);
-  app.use("*", cors({ origin: "*", allowHeaders: ["authorization", "content-type", "accept", "mcp-session-id", "mcp-protocol-version"], exposeHeaders: ["mcp-session-id"] }));
+  app.use("*", cors({ origin: "*", allowHeaders: ["authorization", "x-github-token", "content-type", "accept", "mcp-session-id", "mcp-protocol-version"], exposeHeaders: ["mcp-session-id"] }));
 
   app.use("/mcp", async (c, next) => {
     const required = env("AGENT_Q_TOKEN");
@@ -147,7 +151,8 @@ export function buildApp(basePath = "/agent-q") {
     const server = buildServer();
     const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     await server.connect(transport);
-    return transport.handleRequest(c.req.raw);
+    const callerToken = c.req.header("x-github-token") || undefined;
+    return requestToken.run(callerToken, () => transport.handleRequest(c.req.raw));
   });
 
   return app;

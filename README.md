@@ -10,7 +10,7 @@ Agent Q is a Model Context Protocol (MCP) review server for repository governanc
 | Protocol | MCP, Streamable HTTP transport, stateless |
 | Libraries | `@modelcontextprotocol/sdk` 1.32.2, Hono 4 |
 | Clients | GitHub Copilot custom agent, GitHub Actions, any MCP client |
-| Endpoint | `https://gsluekbphbusnaguqeol.supabase.co/functions/v1/agent-q/mcp` |
+| Endpoint | `https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp` |
 
 ## 2. Conventions
 
@@ -26,6 +26,7 @@ The key words MUST, MUST NOT, SHALL, SHALL NOT, SHOULD and MAY are to be read as
 | AQ-SRV-04 | The server SHALL reject requests without the bearer token when `AGENT_Q_TOKEN` is set. |
 | AQ-SRV-05 | The server MUST NOT return a detected credential in any response. |
 | AQ-SRV-06 | Findings SHALL carry a rule identifier, a severity and a file and line location. |
+| AQ-SRV-07 | A caller MAY supply a GitHub token in the `x-github-token` header. The server SHALL use it for that request only and SHALL NOT store it. |
 
 ## 4. Tools
 
@@ -53,7 +54,7 @@ The policy is also published as the MCP resource `agentq://policy`.
 | AQ-DOC-05 | warning | Documentation SHOULD NOT use filler or hedging vocabulary. |
 | AQ-DOC-06 | warning | Documentation MUST NOT make unqualified assurance claims. |
 | AQ-EVD-01 | info | Quantitative claims SHOULD cite the command, seed or artefact that reproduces them. |
-| AQ-HYG-01 | warning | Changes SHOULD NOT add unresolved TODO, FIXME or XXX markers. |
+| AQ-HYG-01 | warning | Changes SHOULD NOT add unresolved work markers. |
 | AQ-REP-01 | warning | Repositories SHOULD contain README.md, LICENSE, SECURITY.md and a CI workflow. |
 | AQ-REP-02 | info | Repositories SHOULD publish a signing key as `KEYS.asc`, and commits SHOULD be signed. |
 
@@ -67,12 +68,12 @@ Copy `templates/.github/agents/agent-q.agent.md` to `.github/agents/` in the tar
 
 ### 6.2 GitHub Actions
 
-Copy `templates/.github/workflows/agent-q.yml` to `.github/workflows/`. The workflow reviews each pull request, maintains one review comment and fails on CHANGES REQUESTED.
+Copy `templates/.github/workflows/agent-q.yml` to `.github/workflows/`. The workflow reviews each pull request with the job's own `GITHUB_TOKEN`, maintains one review comment and fails on CHANGES REQUESTED.
 
 ### 6.3 Other MCP clients
 
 ```bash
-claude mcp add --transport http agent-q https://gsluekbphbusnaguqeol.supabase.co/functions/v1/agent-q/mcp
+claude mcp add --transport http agent-q https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp
 ```
 
 ## 7. Configuration
