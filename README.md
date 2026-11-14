@@ -10,7 +10,7 @@ Agent Q is a Model Context Protocol (MCP) review server for repository governanc
 | Protocol | MCP, Streamable HTTP transport, stateless |
 | Libraries | `@modelcontextprotocol/sdk` 1.32.2, Hono 4 |
 | Clients | GitHub Copilot custom agent, GitHub Actions, any MCP client |
-| Endpoint | `https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp` |
+| Endpoint | `https://agent-q.itsdhruvsetty.workers.dev/mcp` |
 
 ## 2. Conventions
 
@@ -73,7 +73,7 @@ Copy `templates/.github/workflows/agent-q.yml` to `.github/workflows/`. The work
 ### 6.3 Other MCP clients
 
 ```bash
-claude mcp add --transport http agent-q https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp
+claude mcp add --transport http agent-q https://agent-q.itsdhruvsetty.workers.dev/mcp
 ```
 
 ### 6.4 Cloudflare Workers
