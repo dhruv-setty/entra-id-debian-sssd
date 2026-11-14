@@ -10,7 +10,7 @@ Agent Q is a Model Context Protocol (MCP) review server for repository governanc
 | Protocol | MCP, Streamable HTTP transport, stateless |
 | Libraries | `@modelcontextprotocol/sdk` 1.32.2, Hono 4 |
 | Clients | GitHub Copilot custom agent, GitHub Actions, any MCP client |
-| Endpoint | `https://agent-q.itsdhruvsetty.workers.dev/mcp` |
+| Endpoint | `https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp` |
 
 ## 2. Conventions
 
@@ -73,7 +73,7 @@ Copy `templates/.github/workflows/agent-q.yml` to `.github/workflows/`. The work
 ### 6.3 Other MCP clients
 
 ```bash
-claude mcp add --transport http agent-q https://agent-q.itsdhruvsetty.workers.dev/mcp
+claude mcp add --transport http agent-q https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp --header "apikey: sb_publishable_KpeKmqmnbI9lTj_eu98nzA_tGUOMtBC"
 ```
 
 ### 6.4 Cloudflare Workers
@@ -90,11 +90,20 @@ npx wrangler deploy
 npx wrangler secret put AGENT_Q_TOKEN
 ```
 
+### 6.5 Web console
+
+`docs/index.html` is a browser console for the server, published with GitHub Pages at https://whatheheckisthis.github.io/agent-q/. It reviews pasted code, pull requests, commits and repositories, and shows the policy. Settings hold the endpoint, the gateway key and an optional GitHub token, all kept in the browser.
+
+### 6.6 Deployment
+
+The Supabase GitHub integration deploys `supabase/functions/agent-q` to project `tcaefdirgffncwfwrlbe` on every push to `main`.
+
 ## 7. Configuration
 
 | Secret | Location | Effect |
 |---|---|---|
-| `AGENT_Q_TOKEN` | Edge Function secret or Worker secret | Enables bearer authentication on `/mcp`. |
+| `AGENT_Q_API_KEY` | Edge Function secret | API gateway key. When set, `/mcp` requires an `apikey` header equal to the project's publishable key. |
+| `AGENT_Q_TOKEN` | Edge Function secret or Worker secret | Enables private bearer authentication on `/mcp`. |
 | `GITHUB_TOKEN` | Edge Function secret or Worker secret | Raises the GitHub API rate limit and allows private repositories. |
 | `COPILOT_MCP_AGENT_Q_TOKEN` | Repository Agents secret | Bearer token sent by the Copilot agent. |
 | `AGENT_Q_TOKEN` | Repository Actions secret | Bearer token sent by the workflow. |

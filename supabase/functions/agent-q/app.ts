@@ -6,7 +6,7 @@ import { z } from "zod";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { addedLines, Finding, POLICY, reviewLines, reviewText, summarise, toMarkdown } from "./rules.ts";
 
-export const VERSION = "0.1.1";
+export const VERSION = "0.2.0";
 const OWNER_DEFAULT = "whatheheckisthis";
 
 const env = (k: string): string | undefined =>
@@ -135,11 +135,20 @@ export function buildServer() {
 
 export function buildApp(basePath = "/agent-q") {
   const app = new Hono().basePath(basePath);
-  app.use("*", cors({ origin: "*", allowHeaders: ["authorization", "x-github-token", "content-type", "accept", "mcp-session-id", "mcp-protocol-version"], exposeHeaders: ["mcp-session-id"] }));
+  app.use("*", cors({ origin: "*", allowHeaders: ["authorization", "apikey", "x-github-token", "content-type", "accept", "mcp-session-id", "mcp-protocol-version"], exposeHeaders: ["mcp-session-id"] }));
 
+  // Gateway: when AGENT_Q_API_KEY (the project's publishable key) or AGENT_Q_TOKEN (a private bearer token) is set,
+  // /mcp requires a matching `apikey` header or `Authorization: Bearer` header. With neither set, /mcp is open.
   app.use("/mcp", async (c, next) => {
-    const required = env("AGENT_Q_TOKEN");
-    if (required && c.req.header("authorization") !== `Bearer ${required}`) return c.json({ error: "unauthorized" }, 401);
+    if (c.req.method === "OPTIONS") return next();
+    const apiKey = env("AGENT_Q_API_KEY");
+    const token = env("AGENT_Q_TOKEN");
+    if (apiKey || token) {
+      const bearer = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
+      const given = c.req.header("apikey") ?? "";
+      const ok = (apiKey && (given === apiKey || bearer === apiKey)) || (token && bearer === token);
+      if (!ok) return c.json({ error: "unauthorized", hint: "send the apikey header" }, 401);
+    }
     await next();
   });
 

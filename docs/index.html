@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Q</title>
+<meta name="description" content="Agent Q reviews code, pull requests and repositories against a fixed security and evidence policy.">
+<style>
+  :root { --ink:#111; --muted:#666; --line:#e5e5e5; --bg:#fff; --soft:#f7f7f7; --err:#b42318; --warn:#b54708; --ok:#067647; }
+  * { box-sizing: border-box; }
+  body { margin:0; font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg); }
+  header, main { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+  header { padding-top: 48px; padding-bottom: 8px; display:flex; justify-content:space-between; align-items:baseline; gap:16px; flex-wrap:wrap; }
+  h1 { font-size: 28px; margin: 0; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); margin: 4px 0 0; }
+  .status { font-size: 13px; color: var(--muted); display:flex; align-items:center; gap:8px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:#bbb; display:inline-block; }
+  .dot.up { background: var(--ok); } .dot.down { background: var(--err); }
+  nav { display:flex; gap:4px; border-bottom:1px solid var(--line); margin: 28px 0 24px; overflow-x:auto; }
+  nav button { background:none; border:0; border-bottom:2px solid transparent; padding:10px 14px; font:inherit; color:var(--muted); cursor:pointer; white-space:nowrap; }
+  nav button.on { color:var(--ink); border-color:var(--ink); }
+  .panel { display:none; } .panel.on { display:block; }
+  label { display:block; font-size:13px; color:var(--muted); margin: 14px 0 6px; }
+  input, textarea, select { width:100%; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); }
+  textarea { min-height: 260px; resize: vertical; }
+  .row { display:grid; grid-template-columns: 1fr 1fr 120px; gap:12px; }
+  .row2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  @media (max-width: 640px) { .row, .row2 { grid-template-columns: 1fr; } }
+  .actions { margin-top: 16px; display:flex; gap:12px; align-items:center; }
+  .btn { background: var(--ink); color:#fff; border:0; border-radius:8px; padding:10px 18px; font: 600 14px/1 inherit; font-family: inherit; cursor:pointer; }
+  .btn[disabled] { opacity:.5; cursor:wait; }
+  .hint { font-size:13px; color:var(--muted); }
+  #out { margin: 28px 0 64px; }
+  .verdict { display:inline-block; font-weight:600; padding:4px 10px; border-radius:999px; font-size:13px; margin-bottom:8px; }
+  .verdict.APPROVE { background:#ecfdf3; color:var(--ok); } .verdict.CHANGES { background:#fef3f2; color:var(--err); } .verdict.COMMENT { background:#fffaeb; color:var(--warn); }
+  .result h2 { font-size:18px; margin: 8px 0; } .result h3 { font-size:15px; margin: 18px 0 6px; }
+  .result table { width:100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+  .result th, .result td { text-align:left; padding: 8px 10px; border-bottom:1px solid var(--line); vertical-align: top; }
+  .result th { color: var(--muted); font-weight:500; }
+  .result code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+  .result pre { background: var(--soft); padding: 12px; border-radius: 8px; overflow:auto; font-size:12.5px; }
+  .sev-error { color: var(--err); font-weight:600; } .sev-warning { color: var(--warn); font-weight:600; } .sev-info { color: var(--muted); }
+  details { margin-top: 12px; } summary { cursor:pointer; color: var(--muted); font-size: 13px; }
+  .err { color: var(--err); }
+  footer { max-width:920px; margin: 0 auto; padding: 0 24px 40px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Agent Q</h1>
+    <p class="sub">Policy-driven code review over MCP. Paste code, or point it at a pull request, commit or repository.</p>
+  </div>
+  <div class="status"><span id="dot" class="dot"></span><span id="stat">Checking server</span></div>
+</header>
+<main>
+  <nav id="tabs">
+    <button data-p="text" class="on">Code</button>
+    <button data-p="pr">Pull request</button>
+    <button data-p="commit">Commit</button>
+    <button data-p="repo">Repository</button>
+    <button data-p="policy">Policy</button>
+    <button data-p="settings">Settings</button>
+  </nav>
+
+  <section class="panel on" id="p-text">
+    <label for="t-path">File name (selects the rules, e.g. app.ts or README.md)</label>
+    <input id="t-path" value="snippet.ts">
+    <label for="t-content">Content</label>
+    <textarea id="t-content" spellcheck="false" placeholder="Paste code or documentation here"></textarea>
+    <div class="actions"><button class="btn" data-run="text">Review</button><span class="hint">Nothing is stored.</span></div>
+  </section>
+
+  <section class="panel" id="p-pr">
+    <div class="row">
+      <div><label for="pr-owner">Owner</label><input id="pr-owner" value="whatheheckisthis"></div>
+      <div><label for="pr-repo">Repository</label><input id="pr-repo" placeholder="agent-q"></div>
+      <div><label for="pr-num">Number</label><input id="pr-num" type="number" min="1"></div>
+    </div>
+    <div class="actions"><button class="btn" data-run="pr">Review pull request</button><span class="hint">Added lines only.</span></div>
+  </section>
+
+  <section class="panel" id="p-commit">
+    <div class="row">
+      <div><label for="c-owner">Owner</label><input id="c-owner" value="whatheheckisthis"></div>
+      <div><label for="c-repo">Repository</label><input id="c-repo" placeholder="agent-q"></div>
+      <div><label for="c-ref">Commit SHA</label><input id="c-ref"></div>
+    </div>
+    <div class="actions"><button class="btn" data-run="commit">Review commit</button></div>
+  </section>
+
+  <section class="panel" id="p-repo">
+    <div class="row2">
+      <div><label for="r-owner">Owner</label><input id="r-owner" value="whatheheckisthis"></div>
+      <div><label for="r-repo">Repository</label><select id="r-repo"><option value="">Loading repositories</option></select></div>
+    </div>
+    <div class="actions"><button class="btn" data-run="repo">Review repository</button><span class="hint">Scans text files on the default branch.</span></div>
+  </section>
+
+  <section class="panel" id="p-policy">
+    <div class="actions" style="margin-top:0"><button class="btn" data-run="policy">Load policy</button></div>
+  </section>
+
+  <section class="panel" id="p-settings">
+    <label for="s-endpoint">MCP endpoint</label>
+    <input id="s-endpoint">
+    <label for="s-key">API gateway key (Supabase publishable key)</label>
+    <input id="s-key">
+    <label for="s-gh">GitHub token (optional, for private repos and higher rate limits; kept in this browser only)</label>
+    <input id="s-gh" type="password" autocomplete="off">
+    <div class="actions"><button class="btn" id="save">Save</button><button class="btn" id="reset" style="background:#fff;color:#111;border:1px solid #e5e5e5">Reset to defaults</button><span class="hint" id="saved"></span></div>
+  </section>
+
+  <div id="out"></div>
+</main>
+<footer>Agent Q, Apache-2.0. Connect any MCP client to the endpoint in Settings with the apikey header.</footer>
+
+<script>
+const DEFAULTS = {
+  endpoint: "https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp",
+  key: "sb_publishable_KpeKmqmnbI9lTj_eu98nzA_tGUOMtBC",
+};
+const cfg = () => ({
+  endpoint: localStorage.getItem("aq.endpoint") || DEFAULTS.endpoint,
+  key: localStorage.getItem("aq.key") || DEFAULTS.key,
+  gh: localStorage.getItem("aq.gh") || "",
+});
+const $ = (id) => document.getElementById(id);
+
+function headers() {
+  const c = cfg();
+  const h = { "content-type": "application/json", accept: "application/json, text/event-stream" };
+  if (c.key && !c.key.startsWith("__")) h.apikey = c.key;
+  if (c.gh) h["x-github-token"] = c.gh;
+  return h;
+}
+let rid = 0;
+async function call(name, args) {
+  const res = await fetch(cfg().endpoint, { method: "POST", headers: headers(),
+    body: JSON.stringify({ jsonrpc: "2.0", id: ++rid, method: "tools/call", params: { name, arguments: args } }) });
+  if (res.status === 401) throw new Error("The server rejected the API key. Check Settings.");
+  if (!res.ok) throw new Error("Server returned " + res.status);
+  const j = await res.json();
+  if (j.error) throw new Error(j.error.message);
+  const t = j.result?.content?.[0]?.text ?? "";
+  if (j.result?.isError) throw new Error(t);
+  return t;
+}
+
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inline = (s) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+  .replace(/^(error|warning|info)$/, '<span class="sev-$1">$1</span>');
+function md(src) {
+  const lines = src.split("\n"); let html = ""; let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^```/.test(l)) { let b = []; i++; while (i < lines.length && !/^```/.test(lines[i])) b.push(lines[i++]); i++; html += "<pre>" + esc(b.join("\n")) + "</pre>"; continue; }
+    if (/^<details>/.test(l)) { html += "<details><summary>Raw JSON</summary>"; i++; continue; }
+    if (/^<\/details>/.test(l)) { html += "</details>"; i++; continue; }
+    if (/^###\s/.test(l)) { html += "<h3>" + inline(l.slice(4)) + "</h3>"; i++; continue; }
+    if (/^##\s/.test(l)) { html += "<h2>" + inline(l.slice(3)) + "</h2>"; i++; continue; }
+    if (/^#\s/.test(l)) { html += "<h2>" + inline(l.slice(2)) + "</h2>"; i++; continue; }
+    if (/^\|/.test(l)) {
+      const rows = []; while (i < lines.length && /^\|/.test(lines[i])) rows.push(lines[i++]);
+      const cells = (r) => r.replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+      html += "<table><thead><tr>" + cells(rows[0]).map((c) => "<th>" + inline(c) + "</th>").join("") + "</tr></thead><tbody>";
+      rows.slice(2).forEach((r) => html += "<tr>" + cells(r).map((c) => "<td>" + inline(c) + "</td>").join("") + "</tr>");
+      html += "</tbody></table>"; continue;
+    }
+    if (/^\s*[-*]\s/.test(l)) { html += "<ul>"; while (i < lines.length && /^\s*[-*]\s/.test(lines[i])) html += "<li>" + inline(lines[i++].replace(/^\s*[-*]\s/, "")) + "</li>"; html += "</ul>"; continue; }
+    if (/^\s*\d+\.\s/.test(l)) { html += "<ol>"; while (i < lines.length && /^\s*\d+\.\s/.test(lines[i])) html += "<li>" + inline(lines[i++].replace(/^\s*\d+\.\s/, "")) + "</li>"; html += "</ol>"; continue; }
+    if (l.trim() === "" || l.trim() === "<summary>JSON</summary>") { i++; continue; }
+    html += "<p>" + inline(l) + "</p>"; i++;
+  }
+  return html;
+}
+function show(text) {
+  const v = (text.match(/\*\*Verdict:\*\*\s*([A-Z ]+)/) || [])[1]?.trim();
+  const cls = v ? v.split(" ")[0] : "";
+  $("out").innerHTML = (v ? `<span class="verdict ${cls}">${esc(v)}</span>` : "") + '<div class="result">' + md(text) + "</div>";
+}
+async function run(kind) {
+  const btn = document.querySelector(`[data-run="${kind}"]`); btn.disabled = true;
+  $("out").innerHTML = '<p class="hint">Reviewing</p>';
+  try {
+    let t;
+    if (kind === "text") t = await call("review_text", { path: $("t-path").value || "snippet.txt", content: $("t-content").value });
+    if (kind === "pr") t = await call("review_pull_request", { owner: $("pr-owner").value, repo: $("pr-repo").value, number: Number($("pr-num").value) });
+    if (kind === "commit") t = await call("review_commit", { owner: $("c-owner").value, repo: $("c-repo").value, ref: $("c-ref").value });
+    if (kind === "repo") t = await call("review_repository", { owner: $("r-owner").value, repo: $("r-repo").value });
+    if (kind === "policy") t = await call("get_review_policy", {});
+    show(t);
+  } catch (e) { $("out").innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+  btn.disabled = false;
+}
+async function loadRepos() {
+  try {
+    const t = await call("list_repositories", { owner: $("r-owner").value });
+    const names = [...t.matchAll(/^- [^/]+\/([^:(]+?)(?: \(private\))?:/gm)].map((m) => m[1].trim());
+    $("r-repo").innerHTML = names.map((n) => `<option>${esc(n)}</option>`).join("") || '<option value="">No repositories</option>';
+  } catch { $("r-repo").innerHTML = '<option value="">Could not load</option>'; }
+}
+async function health() {
+  const base = cfg().endpoint.replace(/\/mcp$/, "");
+  try { const j = await (await fetch(base + "/health")).json(); $("dot").className = "dot up"; $("stat").textContent = "Online, v" + j.version; }
+  catch { $("dot").className = "dot down"; $("stat").textContent = "Server unreachable"; }
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("on", p.id === "p-" + b.dataset.p));
+  $("out").innerHTML = "";
+});
+document.querySelectorAll("[data-run]").forEach((b) => b.onclick = () => run(b.dataset.run));
+$("r-owner").onchange = loadRepos;
+function fill() { const c = cfg(); $("s-endpoint").value = c.endpoint; $("s-key").value = c.key.startsWith("__") ? "" : c.key; $("s-gh").value = c.gh; }
+$("save").onclick = () => { localStorage.setItem("aq.endpoint", $("s-endpoint").value.trim()); localStorage.setItem("aq.key", $("s-key").value.trim()); localStorage.setItem("aq.gh", $("s-gh").value.trim()); $("saved").textContent = "Saved"; health(); loadRepos(); };
+$("reset").onclick = () => { ["aq.endpoint", "aq.key", "aq.gh"].forEach((k) => localStorage.removeItem(k)); fill(); $("saved").textContent = "Defaults restored"; health(); };
+fill(); health(); loadRepos();
+</script>
+</body>
+</html>
