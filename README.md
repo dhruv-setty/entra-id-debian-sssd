@@ -92,7 +92,7 @@ npx wrangler secret put AGENT_Q_TOKEN
 
 ### 6.5 Web console
 
-`docs/index.html` is a browser console for the server, published with GitHub Pages at https://whatheheckisthis.github.io/agent-q/. It reviews pasted code, pull requests, commits and repositories, and shows the policy. Settings hold the endpoint, the gateway key and an optional GitHub token, all kept in the browser.
+`docs/index.html` is a browser console for the server, served as static assets by the Cloudflare Worker at https://agent-q.itsdhruvsetty.workers.dev/. It reviews pasted code, pull requests, commits and repositories, and shows the policy. Settings hold the endpoint, the gateway key and an optional GitHub token, all kept in the browser.
 
 ### 6.6 Deployment
 
