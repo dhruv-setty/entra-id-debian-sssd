@@ -76,12 +76,26 @@ Copy `templates/.github/workflows/agent-q.yml` to `.github/workflows/`. The work
 claude mcp add --transport http agent-q https://tcaefdirgffncwfwrlbe.supabase.co/functions/v1/agent-q/mcp
 ```
 
+### 6.4 Cloudflare Workers
+
+The same application runs as a Worker (`worker/index.ts`, `wrangler.jsonc`), served at the Worker root: `/`, `/health` and `/mcp`.
+
+Dashboard: Workers and Pages, Create, Import a repository, select this repository. Build command: none. Deploy command: `npx wrangler deploy`. Root directory: `/`.
+
+CLI:
+
+```bash
+npm ci
+npx wrangler deploy
+npx wrangler secret put AGENT_Q_TOKEN
+```
+
 ## 7. Configuration
 
 | Secret | Location | Effect |
 |---|---|---|
-| `AGENT_Q_TOKEN` | Edge Function secret | Enables bearer authentication on `/mcp`. |
-| `GITHUB_TOKEN` | Edge Function secret | Raises the GitHub API rate limit and allows private repositories. |
+| `AGENT_Q_TOKEN` | Edge Function secret or Worker secret | Enables bearer authentication on `/mcp`. |
+| `GITHUB_TOKEN` | Edge Function secret or Worker secret | Raises the GitHub API rate limit and allows private repositories. |
 | `COPILOT_MCP_AGENT_Q_TOKEN` | Repository Agents secret | Bearer token sent by the Copilot agent. |
 | `AGENT_Q_TOKEN` | Repository Actions secret | Bearer token sent by the workflow. |
 
@@ -90,6 +104,7 @@ claude mcp add --transport http agent-q https://tcaefdirgffncwfwrlbe.supabase.co
 ```bash
 deno check supabase/functions/agent-q/index.ts
 supabase functions serve agent-q
+npm ci && npx wrangler dev
 ```
 
 ## 9. Limitations

@@ -1,8 +1,8 @@
-import { Hono } from "npm:hono@4";
-import { cors } from "npm:hono@4/cors";
-import { McpServer } from "npm:@modelcontextprotocol/sdk@1.32.2/server/mcp.js";
-import { WebStandardStreamableHTTPServerTransport } from "npm:@modelcontextprotocol/sdk@1.32.2/server/webStandardStreamableHttp.js";
-import { z } from "npm:zod@^4.1";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { z } from "zod";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { addedLines, Finding, POLICY, reviewLines, reviewText, summarise, toMarkdown } from "./rules.ts";
 
@@ -143,7 +143,7 @@ export function buildApp(basePath = "/agent-q") {
     await next();
   });
 
-  app.get("/", (c) => c.json({ name: "agent-q", version: VERSION, mcp: `${basePath}/mcp`, transport: "streamable-http" }));
+  app.get("/", (c) => c.json({ name: "agent-q", version: VERSION, mcp: `${basePath.replace(/\/$/, "")}/mcp`, transport: "streamable-http" }));
   app.get("/health", (c) => c.json({ ok: true, version: VERSION }));
 
   app.all("/mcp", async (c) => {

@@ -1,2 +1,5 @@
 .env
 supabase/.temp/
+node_modules/
+.wrangler/
+.dev.vars
