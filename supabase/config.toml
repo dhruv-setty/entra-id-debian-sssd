@@ -1,0 +1,4 @@
+project_id = "agent-q"
+
+[functions.agent-q]
+verify_jwt = false
