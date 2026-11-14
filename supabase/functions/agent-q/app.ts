@@ -6,7 +6,7 @@ import { z } from "zod";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { addedLines, Finding, POLICY, reviewLines, reviewText, summarise, toMarkdown } from "./rules.ts";
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 const OWNER_DEFAULT = "whatheheckisthis";
 
 const env = (k: string): string | undefined =>

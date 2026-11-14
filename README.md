@@ -90,6 +90,18 @@ npx wrangler deploy
 npx wrangler secret put AGENT_Q_TOKEN
 ```
 
+### 6.4.1 Single-step AI reviewer
+
+`POST /review` on the Worker runs one pass per request: it fetches the pull request or commit from GitHub, reads the repository's data points from Supabase with `@supabase/supabase-js`, applies the Agent Q rules, makes one Workers AI call (`@cf/meta/llama-3.1-8b-instruct-fast` by default, override with `AGENT_Q_MODEL`) and saves the result to `public.reviews`. The rule verdict is authoritative; the model only explains and prioritises.
+
+```bash
+curl -X POST https://agent-q.itsdhruvsetty.workers.dev/review \
+  -H "apikey: <publishable key>" -H "content-type: application/json" \
+  -d '{"owner":"whatheheckisthis","repo":"agent-q","number":1}'
+```
+
+`GET /reviews/<owner>/<repo>` returns the saved history. The Worker needs the secret `SUPABASE_SERVICE_ROLE_KEY` (`npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY`); without it the review still runs but is not saved. Tables are created by `supabase/migrations/20261115000000_agent_q_reviews.sql`, with RLS on and no public policies.
+
 ### 6.5 Web console
 
 `docs/index.html` is a browser console for the server, served as static assets by the Cloudflare Worker at https://agent-q.itsdhruvsetty.workers.dev/. It reviews pasted code, pull requests, commits and repositories, and shows the policy. Settings hold the endpoint, the gateway key and an optional GitHub token, all kept in the browser.

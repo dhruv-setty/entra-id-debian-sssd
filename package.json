@@ -1,6 +1,6 @@
 {
   "name": "agent-q",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
+    "@supabase/supabase-js": "^2.119.0",
     "hono": "^4",
     "zod": "^4.1"
   },

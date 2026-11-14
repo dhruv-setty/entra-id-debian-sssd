@@ -55,7 +55,8 @@
 </header>
 <main>
   <nav id="tabs">
-    <button data-p="text" class="on">Code</button>
+    <button data-p="ai" class="on">AI review</button>
+    <button data-p="text">Code</button>
     <button data-p="pr">Pull request</button>
     <button data-p="commit">Commit</button>
     <button data-p="repo">Repository</button>
@@ -63,7 +64,18 @@
     <button data-p="settings">Settings</button>
   </nav>
 
-  <section class="panel on" id="p-text">
+  <section class="panel on" id="p-ai">
+    <div class="row">
+      <div><label for="ai-owner">Owner</label><input id="ai-owner" value="whatheheckisthis"></div>
+      <div><label for="ai-repo">Repository</label><input id="ai-repo" placeholder="agent-q"></div>
+      <div><label for="ai-num">PR number</label><input id="ai-num" type="number" min="1"></div>
+    </div>
+    <label for="ai-ref">Or a commit SHA</label>
+    <input id="ai-ref" placeholder="leave empty for a pull request">
+    <div class="actions"><button class="btn" data-run="ai">Run AI review</button><span class="hint">Rules, repo data points and one Workers AI call. Saved to Supabase.</span></div>
+  </section>
+
+  <section class="panel" id="p-text">
     <label for="t-path">File name (selects the rules, e.g. app.ts or README.md)</label>
     <input id="t-path" value="snippet.ts">
     <label for="t-content">Content</label>
@@ -189,7 +201,24 @@ async function run(kind) {
     if (kind === "commit") t = await call("review_commit", { owner: $("c-owner").value, repo: $("c-repo").value, ref: $("c-ref").value });
     if (kind === "repo") t = await call("review_repository", { owner: $("r-owner").value, repo: $("r-repo").value });
     if (kind === "policy") t = await call("get_review_policy", {});
+    if (kind === "ai") return await aiRun(btn);
     show(t);
+  } catch (e) { $("out").innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
+  btn.disabled = false;
+}
+async function aiRun(btn) {
+  try {
+    const body = { owner: $("ai-owner").value, repo: $("ai-repo").value };
+    if ($("ai-ref").value.trim()) body.ref = $("ai-ref").value.trim(); else body.number = Number($("ai-num").value);
+    const res = await fetch("/review", { method: "POST", headers: headers(), body: JSON.stringify(body) });
+    const j = await res.json();
+    if (!res.ok || j.error) throw new Error(j.error || ("Server returned " + res.status));
+    const cls = j.verdict.split(" ")[0];
+    const rows = j.findings.map((f) => `<tr><td class="sev-${f.severity}">${f.severity}</td><td>${esc(f.rule)}</td><td><code>${esc(f.file)}:${f.line}</code></td><td>${esc(f.message)}</td></tr>`).join("");
+    $("out").innerHTML = `<span class="verdict ${cls}">${esc(j.verdict)}</span><div class="result"><h2>${esc(j.repo)} ${esc(j.target)}</h2>` +
+      (j.ai_review ? `<h3>AI review (${esc(j.model)})</h3>` + md(j.ai_review) : `<p class="hint">AI review unavailable${j.ai_error ? ": " + esc(j.ai_error) : ""}.</p>`) +
+      `<h3>Rule findings</h3>` + (rows ? `<table><thead><tr><th>Severity</th><th>Rule</th><th>Location</th><th>Finding</th></tr></thead><tbody>${rows}</tbody></table>` : "<p>No findings against the Agent Q policy.</p>") +
+      `<p class="hint">${j.saved ? "Saved to Supabase." : "Not saved (database not connected)."}</p></div>`;
   } catch (e) { $("out").innerHTML = '<p class="err">' + esc(e.message) + "</p>"; }
   btn.disabled = false;
 }
