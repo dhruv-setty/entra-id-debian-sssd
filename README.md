@@ -1,4 +1,6 @@
-# Entra ID sign in for Debian hosts with SSSD
+# Intent-Auditable Trust Object V2
+
+Entra ID sign in for Debian hosts with SSSD, managed by `iato`, a C# (.NET 8) command line tool.
 
 Debian hosts authenticate Microsoft Entra ID users through SSSD's identity provider (`idp`) back end. SSSD reads users and groups from Microsoft Graph, signs users in with the OAuth 2.0 Device Authorization Grant (RFC 8628), and derives consistent POSIX UIDs and GIDs from Entra object IDs, so no ID mapping is managed by hand.
 
@@ -20,53 +22,57 @@ Debian hosts authenticate Microsoft Entra ID users through SSSD's identity provi
 
 ## Install from a release
 
-Each release attaches a Debian package, a source tarball and `SHA256SUMS`.
+Releases are cut from the `release/2.x` branch. Each one attaches `iato_<version>_amd64.deb`, `iato_<version>_arm64.deb`, standalone `iato-linux-x64` and `iato-linux-arm64` binaries, a source tarball and `SHA256SUMS`.
 
 ```bash
-V=1.0.0
-curl -LO https://github.com/whatheheckisthis/agent-q/releases/download/v$V/entra-sssd_${V}_all.deb
-curl -LO https://github.com/whatheheckisthis/agent-q/releases/download/v$V/SHA256SUMS
+V=2.0.0
+curl -LO https://github.com/whatheheckisthis/Intent-Auditable-Trust-Object-V2/releases/download/v$V/iato_${V}_amd64.deb
+curl -LO https://github.com/whatheheckisthis/Intent-Auditable-Trust-Object-V2/releases/download/v$V/SHA256SUMS
 sha256sum --check --ignore-missing SHA256SUMS
-sudo apt install ./entra-sssd_${V}_all.deb
+sudo apt install ./iato_${V}_amd64.deb
 
-entra-sssd-register-app sssd-debian-hosts           # once per tenant
-sudo entra-sssd-install entra-app.env "linux-admins" # on each host
-entra-sssd-verify alex@contoso.onmicrosoft.com
+iato register-app --name sssd-debian-hosts --out entra-app.env  # once per tenant
+sudo iato install --env entra-app.env --group linux-admins      # on each host
+iato verify alex@contoso.onmicrosoft.com
 ```
 
-The package installs templates under `/usr/share/entra-sssd` and recommends `sssd (>= 2.11.0)`; on Debian 12 and 13 the installer adds the forky pin before installing SSSD.
+The binary is self contained, so hosts need no .NET runtime. Templates are compiled into it. On Debian 12 and 13, `iato install` adds the forky pin before installing SSSD.
 
-## Setup from source
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `iato register-app` | Creates the Entra app registration through Microsoft Graph, grants admin consent, and writes `entra-app.env` (mode 0600). Uses `IATO_GRAPH_TOKEN` or `az account get-access-token`. |
+| `iato render` | Renders `sssd.conf` from the embedded template. Rejects missing or multi line values. |
+| `iato check` | Checks a config: placeholders, duplicate keys, required `idp` settings, https endpoints, idmap range, `config_file_version`. `--host` also checks the SSSD version, `libsss_idp.so` and the file mode. |
+| `iato install` | Pins SSSD from forky where needed, installs packages, writes the config, enables `pam_sss` and the sshd drop in, and starts SSSD only after the checks pass. |
+| `iato verify` | Runs `sssctl domain-status`, `getent`, `id` and `sssctl user-checks` for a user. |
+
+## Build from source
 
 ```bash
-# 1. Register the app (az CLI, signed in to the tenant)
-./scripts/register-entra-app.sh sssd-debian-hosts
-
-# 2. Install and configure on each host
-sudo ./scripts/install-debian.sh entra-app.env "linux-admins"
-
-# 3. Verify
-./scripts/verify.sh alex@contoso.onmicrosoft.com
+dotnet test
+dotnet publish src/Iato -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o out
 ```
 
-`entra-app.env` holds the client secret. It is written with mode 0600; keep it out of version control and rotate the secret before expiry.
+## Branches
+
+| Branch | Holds |
+| --- | --- |
+| `main` | The `iato` CLI, the `idp` domain template, tests and CI |
+| `openldap` | `main` plus an OpenLDAP domain (`iato render --provider ldap`) for hosts that must work offline from Entra ID or need LDAP binds |
+| `release/2.x` | `main` plus Debian packaging and the release workflow; version tags are cut here |
 
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `sssd/sssd.conf` | Template for the `idp` domain, rendered by the installer |
+| `src/Iato/` | The CLI (.NET 8) |
+| `tests/Iato.Tests/` | xUnit tests for rendering, checks and the Graph request |
+| `sssd/sssd.conf` | Template for the `idp` domain |
 | `apt/` | forky source and pin so only SSSD packages come from forky |
 | `ssh/` | sshd drop in enabling keyboard-interactive for the device code prompt |
-| `scripts/` | App registration, host install, verification |
-| `ldap/` | Alternative domain for users provisioned into OpenLDAP |
-| `packaging/` | Builds the `.deb`, tarball and checksums (`./packaging/build.sh`) |
-| `.github/workflows/release.yml` | On a `v*` tag, builds the packages and attaches them to the GitHub release |
-| `.github/workflows/ci.yml` | ShellCheck, plus `sssctl config-check` against the rendered config in a Debian forky container |
-
-## Choosing between `idp` and OpenLDAP
-
-The `idp` provider talks to Microsoft Graph directly and needs no directory server. Use the OpenLDAP domain in `ldap/` when hosts must work while offline from Entra ID, when software needs LDAP binds, or when POSIX attributes must be set explicitly. In that design an identity sync provisions Entra users and groups into OpenLDAP, and SSSD reads OpenLDAP over LDAPS.
+| `.github/workflows/ci.yml` | Build, test, then `iato check --host` against SSSD in a Debian forky container |
 
 ## Security notes
 
@@ -82,4 +88,4 @@ The `idp` provider talks to Microsoft Graph directly and needs no directory serv
 
 ## History
 
-Versions up to `v0.3.0` of this repository were Agent Q, a pull request reviewer on Cloudflare Workers and Supabase. That code remains at the `v0.3.0` tag and release.
+This repository was named `agent-q` until v2. Versions up to `v0.3.0` were Agent Q, a pull request reviewer on Cloudflare Workers and Supabase. That code remains at the `v0.3.0` tag and release. `v1.0.0` was the first shell script version of the SSSD project.

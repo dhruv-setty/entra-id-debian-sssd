@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{DD2DD769-9E51-4E6F-A459-C0771DDBFC0E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iato", "src\Iato\Iato.csproj", "{5922A796-5E18-4608-A7A8-FBFFDD9ECD7D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{067876D3-6286-446E-8391-3BF1AB130937}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Iato.Tests", "tests\Iato.Tests\Iato.Tests.csproj", "{8B85D86A-426B-4283-9BE1-E1785230B555}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5922A796-5E18-4608-A7A8-FBFFDD9ECD7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5922A796-5E18-4608-A7A8-FBFFDD9ECD7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5922A796-5E18-4608-A7A8-FBFFDD9ECD7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5922A796-5E18-4608-A7A8-FBFFDD9ECD7D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B85D86A-426B-4283-9BE1-E1785230B555}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B85D86A-426B-4283-9BE1-E1785230B555}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B85D86A-426B-4283-9BE1-E1785230B555}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B85D86A-426B-4283-9BE1-E1785230B555}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5922A796-5E18-4608-A7A8-FBFFDD9ECD7D} = {DD2DD769-9E51-4E6F-A459-C0771DDBFC0E}
+		{8B85D86A-426B-4283-9BE1-E1785230B555} = {067876D3-6286-446E-8391-3BF1AB130937}
+	EndGlobalSection
+EndGlobal

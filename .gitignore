@@ -1,3 +1,4 @@
-entra-app.env
-*.env
+bin/
+obj/
 dist/
+*.env

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>iato</AssemblyName>
+    <RootNamespace>Iato</RootNamespace>
+    <Product>Intent-Auditable Trust Object V2</Product>
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../VERSION').Trim())</Version>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../sssd/*.conf" LogicalName="templates/sssd/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../apt/*" LogicalName="templates/apt/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../ssh/*.conf" LogicalName="templates/ssh/%(Filename)%(Extension)" />
+    <InternalsVisibleTo Include="Iato.Tests" />
+  </ItemGroup>
+</Project>

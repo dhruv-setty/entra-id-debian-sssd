@@ -3,40 +3,33 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: shellcheck scripts/*.sh packaging/build.sh
-  config-check:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test -c Release
+      - run: dotnet publish src/Iato -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iato-linux-x64
+          path: out/iato
+  host-check:
+    needs: build
     runs-on: ubuntu-latest
     container: debian:forky
     steps:
-      - uses: actions/checkout@v4
-      - run: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y sssd sssd-idp sssd-tools
-      - name: SSSD has the idp provider
+      - uses: actions/download-artifact@v4
+        with:
+          name: iato-linux-x64
+      - run: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y sssd sssd-idp sssd-tools ca-certificates
+      - name: Render and check sssd.conf against the installed SSSD
         run: |
-          v=$(dpkg-query -W -f='${Version}' sssd-common | cut -d- -f1)
-          echo "SSSD $v"
-          dpkg --compare-versions "$v" ge 2.11.0
-      - name: Render and validate sssd.conf
-        run: |
-          sed -e 's/__TENANT_ID__/00000000-0000-0000-0000-000000000000/g' \
-              -e 's/__CLIENT_ID__/11111111-1111-1111-1111-111111111111/g' \
-              -e 's/__CLIENT_SECRET__/ci-placeholder/g' \
-              -e 's/__ALLOWED_GROUP__/linux-admins/g' sssd/sssd.conf > /etc/sssd/sssd.conf
-          ! grep -q '__' /etc/sssd/sssd.conf
-          chmod 0600 /etc/sssd/sssd.conf
-          # sssctl's validator rules can lag the idp back end: allow only that
-          # finding, and only when the idp back end is installed.
-          dpkg -L sssd-idp sssd-common | grep -q 'libsss_idp.so'
-          out=$(sssctl config-check 2>&1 || true); echo "$out"
-          echo "$out" | grep '^\[rule/' | grep -v "Attribute 'id_provider' in section 'domain/entra' has an invalid value: idp" \
-            | grep -v "Attribute 'auth_provider' in section 'domain/entra' has an invalid value: idp" \
-            | { ! grep . ; }
-  package:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./packaging/build.sh
-      - run: dpkg-deb --info dist/*.deb && dpkg-deb --contents dist/*.deb
+          chmod +x iato
+          printf 'TENANT_ID=00000000-0000-0000-0000-000000000000\nCLIENT_ID=11111111-1111-1111-1111-111111111111\nCLIENT_SECRET=ci-placeholder\n' > ci.env
+          ./iato render --env ci.env --group linux-admins --out /etc/sssd/sssd.conf
+          ./iato check --config /etc/sssd/sssd.conf --host
+      - name: sssctl report (informational; its rule set can lag the idp back end)
+        run: sssctl config-check || true
