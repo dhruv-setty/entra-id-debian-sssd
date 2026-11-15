@@ -92,6 +92,14 @@ internal static partial class SssdConfig
                 f.Add(new(Severity.Error, "idp_client_id is not a GUID"));
         }
 
+        if (provider == Providers.Ldap)
+        {
+            if (!d.GetValueOrDefault("ldap_uri", "").Split(',', StringSplitOptions.TrimEntries).All(u => u.StartsWith("ldaps://")))
+                f.Add(new(Severity.Error, "ldap_uri must use ldaps:// so the bind password is never sent in clear"));
+            if (d.GetValueOrDefault("ldap_tls_reqcert") != "demand")
+                f.Add(new(Severity.Error, "ldap_tls_reqcert must be demand"));
+        }
+
         if (long.TryParse(d.GetValueOrDefault("idmap_range_min"), out var min)
             && long.TryParse(d.GetValueOrDefault("idmap_range_max"), out var max)
             && long.TryParse(d.GetValueOrDefault("idmap_range_size"), out var size))
@@ -100,7 +108,7 @@ internal static partial class SssdConfig
             else if ((max - min) % size != 0) f.Add(new(Severity.Warning, "idmap range is not a whole number of slices"));
         }
 
-        if (d.GetValueOrDefault("cache_credentials") == "true")
+        if (provider == Providers.Idp && d.GetValueOrDefault("cache_credentials") == "true")
             f.Add(new(Severity.Warning, "cache_credentials = true allows offline logins after Entra access is revoked"));
         return f;
     }

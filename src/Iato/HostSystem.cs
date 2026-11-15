@@ -5,8 +5,6 @@ namespace Iato;
 /// <summary>The Debian host: package versions, the SSSD back end on disk, and the commands that change it.</summary>
 internal static class HostSystem
 {
-    public static readonly Version MinSssd = new(2, 11, 0);
-
     public static (int Code, string Output) Run(string file, params string[] args)
     {
         var psi = new ProcessStartInfo(file) { RedirectStandardOutput = true, RedirectStandardError = true };
@@ -42,9 +40,9 @@ internal static class HostSystem
         return Version.TryParse(upstream, out var ver) ? ver : null;
     }
 
-    public static string? IdpBackend() =>
+    public static string? Backend(string library) =>
         Directory.Exists("/usr/lib")
-            ? Directory.EnumerateFiles("/usr/lib", "libsss_idp.so", new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 4, IgnoreInaccessible = true }).FirstOrDefault()
+            ? Directory.EnumerateFiles("/usr/lib", library, new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 4, IgnoreInaccessible = true }).FirstOrDefault()
             : null;
 
     public static string? Codename()
@@ -54,13 +52,13 @@ internal static class HostSystem
         return File.ReadAllLines(f).FirstOrDefault(l => l.StartsWith("VERSION_CODENAME="))?.Split('=')[1].Trim('"');
     }
 
-    public static List<Finding> CheckHost(string confPath)
+    public static List<Finding> CheckHost(string confPath, Provider provider)
     {
         var f = new List<Finding>();
         var v = SssdVersion();
         if (v is null) f.Add(new(Severity.Error, "sssd-common is not installed"));
-        else if (v < MinSssd) f.Add(new(Severity.Error, $"SSSD {v} has no idp provider; 2.11.0 or later is required"));
-        if (IdpBackend() is null) f.Add(new(Severity.Error, "libsss_idp.so not found; install sssd-idp"));
+        else if (v < provider.MinSssd) f.Add(new(Severity.Error, $"SSSD {v} is too old for the {provider.Name} provider; {provider.MinSssd} or later is required"));
+        if (Backend(provider.BackendLibrary) is null) f.Add(new(Severity.Error, $"{provider.BackendLibrary} not found; install {provider.Packages[1]}"));
         if (!OperatingSystem.IsWindows() && File.Exists(confPath))
         {
             var mode = File.GetUnixFileMode(confPath);

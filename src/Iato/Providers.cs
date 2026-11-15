@@ -6,7 +6,10 @@ internal sealed record Provider(
     string Domain,
     string Template,
     string[] RequiredKeys,
-    string[] Placeholders);
+    string[] Placeholders,
+    string[] Packages,
+    string BackendLibrary,
+    Version MinSssd);
 
 internal static class Providers
 {
@@ -21,11 +24,29 @@ internal static class Providers
             "idp_id_scope", "idp_auth_scope", "simple_allow_groups",
             "idmap_range_min", "idmap_range_max", "idmap_range_size",
         ],
-        Placeholders: ["TENANT_ID", "CLIENT_ID", "CLIENT_SECRET", "ALLOWED_GROUP"]);
+        Placeholders: ["TENANT_ID", "CLIENT_ID", "CLIENT_SECRET", "ALLOWED_GROUP"],
+        Packages: ["sssd", "sssd-idp", "libnss-sss", "libpam-sss", "sssd-tools"],
+        BackendLibrary: "libsss_idp.so",
+        MinSssd: new(2, 11, 0));
+
+    public static readonly Provider Ldap = new(
+        Name: "ldap",
+        Domain: "domain/openldap",
+        Template: "templates/sssd/sssd-ldap.conf",
+        RequiredKeys:
+        [
+            "id_provider", "auth_provider", "access_provider", "ldap_uri", "ldap_search_base",
+            "ldap_default_bind_dn", "ldap_default_authtok", "ldap_tls_reqcert", "ldap_access_filter",
+        ],
+        Placeholders: ["LDAP_URI", "SEARCH_BASE", "BIND_DN", "BIND_PASSWORD", "ALLOWED_GROUP"],
+        Packages: ["sssd", "sssd-ldap", "libnss-sss", "libpam-sss", "sssd-tools"],
+        BackendLibrary: "libsss_ldap.so",
+        MinSssd: new(2, 8, 0));
 
     public static readonly Dictionary<string, Provider> All = new(StringComparer.OrdinalIgnoreCase)
     {
         [Idp.Name] = Idp,
+        [Ldap.Name] = Ldap,
     };
 
     public static Provider Get(string? name) =>

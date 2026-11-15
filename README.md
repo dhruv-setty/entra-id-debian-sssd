@@ -74,6 +74,15 @@ dotnet publish src/Iato -c Release -r linux-x64 --self-contained -p:PublishSingl
 | `ssh/` | sshd drop in enabling keyboard-interactive for the device code prompt |
 | `.github/workflows/ci.yml` | Build, test, then `iato check --host` against SSSD in a Debian forky container |
 
+## OpenLDAP domain (this branch)
+
+```bash
+# ldap.env: LDAP_URI, SEARCH_BASE, BIND_DN, BIND_PASSWORD
+sudo iato install --provider ldap --env ldap.env --group cn=linux-login,ou=groups,dc=example,dc=internal
+```
+
+Use it when hosts must keep working while offline from Entra ID, when software needs LDAP binds, or when POSIX attributes must be set explicitly. An identity sync provisions Entra users and groups into OpenLDAP; SSSD reads it over LDAPS (`iato check` rejects `ldap://`). Template: `sssd/sssd-ldap.conf`.
+
 ## Security notes
 
 - The client secret grants tenant wide read of users and group membership. Store it only in `/etc/sssd/sssd.conf` (root, 0600) and prefer a certificate credential once SSSD supports one for this provider.

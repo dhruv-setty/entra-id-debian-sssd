@@ -24,12 +24,17 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: iato-linux-x64
-      - run: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y sssd sssd-idp sssd-tools ca-certificates
+      - run: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y sssd sssd-idp sssd-ldap sssd-tools ca-certificates
       - name: Render and check sssd.conf against the installed SSSD
         run: |
           chmod +x iato
           printf 'TENANT_ID=00000000-0000-0000-0000-000000000000\nCLIENT_ID=11111111-1111-1111-1111-111111111111\nCLIENT_SECRET=ci-placeholder\n' > ci.env
           ./iato render --env ci.env --group linux-admins --out /etc/sssd/sssd.conf
           ./iato check --config /etc/sssd/sssd.conf --host
+      - name: Render and check the OpenLDAP domain
+        run: |
+          printf 'LDAP_URI=ldaps://ldap.example.internal\nSEARCH_BASE=dc=example,dc=internal\nBIND_DN=cn=sssd,ou=service,dc=example,dc=internal\nBIND_PASSWORD=ci-placeholder\n' > ldap.env
+          ./iato render --provider ldap --env ldap.env --group cn=linux-login,ou=groups,dc=example,dc=internal --out ldap.conf
+          ./iato check --provider ldap --config ldap.conf --host
       - name: sssctl report (informational; its rule set can lag the idp back end)
         run: sssctl config-check || true

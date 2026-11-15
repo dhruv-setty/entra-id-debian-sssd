@@ -11,12 +11,14 @@ internal static class Program
 
         Usage:
           iato register-app [--name sssd-debian-hosts] [--out entra-app.env]
-          iato render --env entra-app.env --group <entra group> [--provider idp] [--out sssd.conf]
-          iato check [--config /etc/sssd/sssd.conf] [--provider idp] [--host]
-          iato install --env entra-app.env --group <entra group> [--provider idp]
-          iato verify <user@tenant>
+          iato render --env <file> --group <group> [--provider idp|ldap] [--out sssd.conf]
+          iato check [--config /etc/sssd/sssd.conf] [--provider idp|ldap] [--host]
+          iato install --env <file> --group <group> [--provider idp|ldap]
+          iato verify <user> [--provider idp|ldap]
           iato version
 
+        For idp the env file holds TENANT_ID, CLIENT_ID, CLIENT_SECRET and --group is an Entra group.
+        For ldap it holds LDAP_URI, SEARCH_BASE, BIND_DN, BIND_PASSWORD and --group is a group DN.
         register-app reads a Graph token from IATO_GRAPH_TOKEN or 'az account get-access-token'.
         Files holding the client secret are written with mode 0600.
         """;
@@ -78,7 +80,7 @@ internal static class Program
     {
         var path = a.Get("config", "/etc/sssd/sssd.conf");
         var findings = SssdConfig.Check(File.ReadAllText(path), Providers.Get(a.Opt("provider")));
-        if (a.Flag("host")) findings.AddRange(HostSystem.CheckHost(path));
+        if (a.Flag("host")) findings.AddRange(HostSystem.CheckHost(path, Providers.Get(a.Opt("provider"))));
         foreach (var f in findings) Console.WriteLine(f);
         var errors = findings.Count(f => f.Severity == Severity.Error);
         Console.WriteLine(errors == 0 ? $"{path}: ok" : $"{path}: {errors} error(s)");
@@ -91,24 +93,25 @@ internal static class Program
         var provider = Providers.Get(a.Opt("provider"));
         var text = SssdConfig.Render(provider, Values(a));
 
-        if (HostSystem.Codename() is "bookworm" or "trixie")
+        if (provider == Providers.Idp && HostSystem.Codename() is "bookworm" or "trixie")
         {
             Console.WriteLine("This Debian release ships SSSD older than 2.11; pinning SSSD packages from forky.");
             File.WriteAllText("/etc/apt/sources.list.d/forky.sources", Templates.Read("templates/apt/forky.sources"));
             File.WriteAllText("/etc/apt/preferences.d/forky-sssd", Templates.Read("templates/apt/forky-sssd.pref"));
         }
         HostSystem.Must("apt-get", "update");
-        HostSystem.Must("apt-get", "install", "-y", "sssd", "sssd-idp", "libnss-sss", "libpam-sss", "sssd-tools");
+        HostSystem.Must("apt-get", ["install", "-y", .. provider.Packages]);
 
         Directory.CreateDirectory("/etc/sssd");
         SssdConfig.WriteSecretFile("/etc/sssd/sssd.conf", text);
         var findings = SssdConfig.Check(text, provider);
-        findings.AddRange(HostSystem.CheckHost("/etc/sssd/sssd.conf"));
+        findings.AddRange(HostSystem.CheckHost("/etc/sssd/sssd.conf", provider));
         foreach (var f in findings) Console.WriteLine(f);
         if (findings.Any(f => f.Severity == Severity.Error)) throw new InvalidOperationException("host checks failed; SSSD not started");
 
         HostSystem.Must("pam-auth-update", "--enable", "sss", "mkhomedir", "--force");
-        File.WriteAllText("/etc/ssh/sshd_config.d/50-entra-device-code.conf", Templates.Read("templates/ssh/50-entra-device-code.conf"));
+        if (provider == Providers.Idp)
+            File.WriteAllText("/etc/ssh/sshd_config.d/50-entra-device-code.conf", Templates.Read("templates/ssh/50-entra-device-code.conf"));
         HostSystem.Must("systemctl", "enable", "--now", "sssd");
         HostSystem.Must("systemctl", "restart", "sssd");
         if (HostSystem.Run("systemctl", "reload", "ssh").Code != 0) HostSystem.Run("systemctl", "reload", "sshd");
@@ -120,7 +123,8 @@ internal static class Program
     {
         var user = a.Positional.FirstOrDefault() ?? throw new UsageException("verify needs a user");
         var failed = 0;
-        foreach (var cmd in new[] { new[] { "sssctl", "domain-status", "entra" }, ["getent", "passwd", user], ["id", user], ["sssctl", "user-checks", "-a", "acct", user] })
+        var domain = Providers.Get(a.Opt("provider")).Domain["domain/".Length..];
+        foreach (var cmd in new[] { new[] { "sssctl", "domain-status", domain }, ["getent", "passwd", user], ["id", user], ["sssctl", "user-checks", "-a", "acct", user] })
         {
             var (code, output) = HostSystem.Run(cmd[0], cmd[1..]);
             Console.WriteLine($"$ {string.Join(' ', cmd)}\n{output}\n");

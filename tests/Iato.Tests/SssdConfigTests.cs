@@ -77,3 +77,26 @@ public class SssdConfigTests
         Assert.Contains("\"isFallbackPublicClient\":true", body);
     }
 }
+
+public class LdapProviderTests
+{
+    private static readonly Dictionary<string, string> Values = new()
+    {
+        ["LDAP_URI"] = "ldaps://ldap.example.internal",
+        ["SEARCH_BASE"] = "dc=example,dc=internal",
+        ["BIND_DN"] = "cn=sssd,ou=service,dc=example,dc=internal",
+        ["BIND_PASSWORD"] = "placeholder",
+        ["ALLOWED_GROUP"] = "cn=linux-login,ou=groups,dc=example,dc=internal",
+    };
+
+    [Fact]
+    public void RenderedLdapTemplatePassesCheck() =>
+        Assert.Empty(SssdConfig.Check(SssdConfig.Render(Providers.Ldap, Values), Providers.Ldap).Where(f => f.Severity == Severity.Error));
+
+    [Fact]
+    public void PlainLdapIsRejected()
+    {
+        var v = new Dictionary<string, string>(Values) { ["LDAP_URI"] = "ldap://ldap.example.internal" };
+        Assert.Contains(SssdConfig.Check(SssdConfig.Render(Providers.Ldap, v), Providers.Ldap), f => f.Message.Contains("ldaps://"));
+    }
+}
