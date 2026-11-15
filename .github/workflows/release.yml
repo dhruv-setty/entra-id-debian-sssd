@@ -15,7 +15,7 @@ jobs:
       - name: Version matches tag
         run: test "v$(cat VERSION)" = "${GITHUB_REF_NAME}"
       - name: Build packages
-        run: ./packaging/build.sh
+        run: dotnet run --project packaging/Iato.Packaging -c Release
       - name: Packages install and run
         run: |
           sudo apt-get install -y ./dist/iato_*_amd64.deb

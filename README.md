@@ -72,7 +72,7 @@ dotnet publish src/Iato -c Release -r linux-x64 --self-contained -p:PublishSingl
 | `sssd/sssd.conf` | Template for the `idp` domain |
 | `apt/` | forky source and pin so only SSSD packages come from forky |
 | `ssh/` | sshd drop in enabling keyboard-interactive for the device code prompt |
-| `packaging/` | `build.sh` builds both .deb packages, the binaries, the tarball and `SHA256SUMS` (this branch) |
+| `packaging/` | `dotnet run --project packaging/Iato.Packaging` builds both .deb packages, the binaries, the tarball and `SHA256SUMS` (this branch) |
 | `.github/workflows/release.yml` | On a `v2.*` tag, builds, smoke tests and publishes the release (this branch) |
 | `.github/workflows/ci.yml` | Build, test, then `iato check --host` against SSSD in a Debian forky container |
 
