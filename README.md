@@ -24,7 +24,7 @@ Debian hosts authenticate Microsoft Entra ID users through SSSD's identity provi
 
 Releases are cut from the `release/2.x` branch. Each one attaches `iato_<version>_amd64.deb`, `iato_<version>_arm64.deb`, standalone `iato-linux-x64` and `iato-linux-arm64` binaries, a source tarball and `SHA256SUMS`.
 
-```bash
+```console
 V=2.0.0
 curl -LO https://github.com/whatheheckisthis/Intent-Auditable-Trust-Object-V2/releases/download/v$V/iato_${V}_amd64.deb
 curl -LO https://github.com/whatheheckisthis/Intent-Auditable-Trust-Object-V2/releases/download/v$V/SHA256SUMS
@@ -50,7 +50,7 @@ The binary is self contained, so hosts need no .NET runtime. Templates are compi
 
 ## Build from source
 
-```bash
+```console
 dotnet test
 dotnet publish src/Iato -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o out
 ```
