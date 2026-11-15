@@ -14,7 +14,7 @@ Commits and tags in this repository SHALL be signed with the maintainer key publ
 
 To verify a commit or tag:
 
-```bash
+```console
 gpg --import KEYS.asc
 git verify-commit HEAD
 git verify-tag <tag>
