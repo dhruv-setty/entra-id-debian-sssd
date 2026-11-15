@@ -3,3 +3,5 @@
 *.sources linguist-detectable=false
 *.pref linguist-detectable=false
 *.asc linguist-detectable=false
+
+# Linguist: count C# only. No TypeScript or shell is tracked.
