@@ -1,0 +1,28 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip tags that predate packaging
+        id: has
+        run: test -f packaging/build.sh && echo ok=1 >> "$GITHUB_OUTPUT" || echo ok=0 >> "$GITHUB_OUTPUT"
+      - name: Version matches tag
+        if: steps.has.outputs.ok == '1'
+        run: test "v$(cat VERSION)" = "${GITHUB_REF_NAME}"
+      - name: Build tarball and .deb
+        if: steps.has.outputs.ok == '1'
+        run: ./packaging/build.sh
+      - name: Attach to release
+        if: steps.has.outputs.ok == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes-from-tag
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber

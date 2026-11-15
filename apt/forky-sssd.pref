@@ -1,0 +1,9 @@
+# /etc/apt/preferences.d/forky-sssd
+# Keep the base system on the installed release; take only SSSD from forky.
+Package: *
+Pin: release n=forky
+Pin-Priority: 100
+
+Package: sssd sssd-* libsss-* libpam-sss libnss-sss python3-sss libipa-hbac* libsss*
+Pin: release n=forky
+Pin-Priority: 990

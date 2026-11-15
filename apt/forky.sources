@@ -1,0 +1,6 @@
+# /etc/apt/sources.list.d/forky.sources
+Types: deb
+URIs: http://deb.debian.org/debian
+Suites: forky
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
