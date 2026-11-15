@@ -1,0 +1,15 @@
+Package: iato
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: @ARCH@
+Maintainer: Dhruv Setty <91457220+whatheheckisthis@users.noreply.github.com>
+Depends: libc6, libssl3 | libssl3t64, ca-certificates
+Recommends: sssd (>= 2.11.0), sssd-idp, libnss-sss, libpam-sss, sssd-tools
+Suggests: azure-cli
+Homepage: https://github.com/whatheheckisthis/Intent-Auditable-Trust-Object-V2
+Description: Intent-Auditable Trust Object V2: Entra ID sign in for Debian
+ iato registers an Entra ID application through Microsoft Graph, renders and
+ checks sssd.conf for the SSSD idp provider, installs SSSD (pinning it from
+ Debian forky on bookworm and trixie), and verifies that Entra users resolve
+ and may log in with the OAuth 2.0 Device Authorization Grant.
