@@ -1,7 +1,5 @@
-# Intent-Auditable Trust Object V2
-
+# 
 Entra ID sign in for Debian hosts with SSSD, managed by `iato`, a C# (.NET 8) command line tool.
-
 Debian hosts authenticate Microsoft Entra ID users through SSSD's identity provider (`idp`) back end. SSSD reads users and groups from Microsoft Graph, signs users in with the OAuth 2.0 Device Authorization Grant (RFC 8628), and derives consistent POSIX UIDs and GIDs from Entra object IDs, so no ID mapping is managed by hand.
 
 ## How it works
