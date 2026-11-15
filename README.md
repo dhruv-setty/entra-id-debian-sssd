@@ -97,4 +97,4 @@ Use it when hosts must keep working while offline from Entra ID, when software n
 
 ## History
 
-This repository was named `agent-q` until v2. Versions up to `v0.3.0` were Agent Q, a pull request reviewer on Cloudflare Workers and Supabase. That code remains at the `v0.3.0` tag and release. `v1.0.0` was the first shell script version of the SSSD project.
+This repository was named `agent-q` until v2. Versions up to `v0.3.0` were Agent Q, a pull request reviewer on Cloudflare Workers and Supabase. That code remains at the `v0.3.0` tag and release. `v1.0.0` was the first release of the SSSD project.
