@@ -9,6 +9,7 @@ ENV_FILE="$1"; ALLOWED_GROUP="$2"
 . "$ENV_FILE"
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 [ -f "$HERE/sssd/sssd.conf" ] || HERE=/usr/share/entra-sssd
+# shellcheck source=/dev/null
 . /etc/os-release
 
 if [ "$VERSION_CODENAME" = "bookworm" ] || [ "$VERSION_CODENAME" = "trixie" ]; then

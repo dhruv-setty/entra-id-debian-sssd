@@ -27,7 +27,17 @@ jobs:
               -e 's/__ALLOWED_GROUP__/linux-admins/g' sssd/sssd.conf > /etc/sssd/sssd.conf
           ! grep -q '__' /etc/sssd/sssd.conf
           chmod 0600 /etc/sssd/sssd.conf
-          sssctl config-check
+          # sssctl's validator rules can lag the idp back end: allow only that
+          # finding, and only when the idp back end is installed.
+          dpkg -L sssd-idp sssd-common | grep -q 'libsss_idp.so'
+          out=$(sssctl config-check 2>&1 || true); echo "$out"
+          echo "$out" | grep '^\[rule/' | grep -v "Attribute 'id_provider' in section 'domain/entra' has an invalid value: idp" \
+            | grep -v "Attribute 'auth_provider' in section 'domain/entra' has an invalid value: idp" \
+            | { ! grep . ; }
+      - name: SSSD loads the idp domain
+        run: |
+          sssd --genconf
+          ls /var/lib/sss/db/config.ldb
   package:
     runs-on: ubuntu-latest
     steps:
