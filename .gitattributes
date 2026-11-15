@@ -1,0 +1,5 @@
+# Count only the C# sources in language statistics.
+*.conf linguist-detectable=false
+*.sources linguist-detectable=false
+*.pref linguist-detectable=false
+*.asc linguist-detectable=false
