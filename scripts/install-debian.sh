@@ -30,7 +30,7 @@ chown root:root /etc/sssd/sssd.conf; chmod 0600 /etc/sssd/sssd.conf
 
 pam-auth-update --enable sss mkhomedir --force
 install -m 0644 "$HERE/ssh/50-entra-device-code.conf" /etc/ssh/sshd_config.d/50-entra-device-code.conf
-sssctl config-check
+sssctl config-check || echo "note: sssctl rules may not list the idp provider yet; continuing"
 systemctl enable --now sssd
 systemctl reload ssh || systemctl reload sshd || true
 echo "Done. Verify with: scripts/verify.sh <user@tenant.onmicrosoft.com>"

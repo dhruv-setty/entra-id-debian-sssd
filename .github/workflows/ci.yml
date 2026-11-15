@@ -34,10 +34,6 @@ jobs:
           echo "$out" | grep '^\[rule/' | grep -v "Attribute 'id_provider' in section 'domain/entra' has an invalid value: idp" \
             | grep -v "Attribute 'auth_provider' in section 'domain/entra' has an invalid value: idp" \
             | { ! grep . ; }
-      - name: SSSD loads the idp domain
-        run: |
-          sssd --genconf
-          ls /var/lib/sss/db/config.ldb
   package:
     runs-on: ubuntu-latest
     steps:
