@@ -78,6 +78,38 @@ iato verify alex@contoso.onmicrosoft.com
 | `iato verify` | Runs `sssctl domain-status`, `getent`, `id` and `sssctl user-checks` for a user. |
 | `iato version` | Prints the tool version. |
 
+## Walkthrough
+
+The screens below follow one tenant and one host from app registration to an SSH sign in. Screens 2, 3 and 7 are captured output from `iato` 2.0.1 and `dotnet test`. Screens 1, 4, 5 and 6 are example sessions for the placeholder tenant `contoso.onmicrosoft.com`: the `iato` lines are the tool's own messages, and the remaining output follows the formats of `sssctl`, `getent`, `id` and the SSSD `idp` device code prompt. Identifiers, codes and the secret are placeholders.
+
+1. Register the Entra ID app once per tenant. The client secret is written to a file only the owner can read.
+
+   ![iato register-app creating the Entra ID app registration](docs/screenshots/01-register-app.png)
+
+2. Render `sssd.conf` for the `idp` domain and check it before it reaches a host.
+
+   ![iato render and iato check on a valid configuration](docs/screenshots/02-render-check.png)
+
+3. `iato check` stops a broken configuration: an unrendered placeholder, a key SSSD 2.13 rejects and endpoints that are not https.
+
+   ![iato check reporting four errors and exiting 1](docs/screenshots/03-check-errors.png)
+
+4. Install on a Debian 13 host. SSSD packages are pinned from forky, and SSSD starts only after the host checks pass.
+
+   ![iato install on a Debian 13 host](docs/screenshots/04-install.png)
+
+5. Verify that an Entra ID user resolves to a POSIX account and passes the access check for the allowed group.
+
+   ![iato verify for an Entra ID user](docs/screenshots/05-verify.png)
+
+6. The user signs in over SSH. SSSD shows a device code, the user completes sign in on any browser with MFA and Conditional Access, and the session opens.
+
+   ![SSH sign in with the Entra ID device code](docs/screenshots/06-ssh-device-code.png)
+
+7. The unit tests cover rendering, checks and the Graph request.
+
+   ![dotnet test passing 10 tests](docs/screenshots/07-tests.png)
+
 ## Configuration
 
 - `sssd/sssd.conf` is the template for the `idp` domain. `iato render` and `iato install` fill it from `entra-app.env` and the `--group` value.
@@ -108,6 +140,7 @@ iato verify alex@contoso.onmicrosoft.com
 | `sssd/sssd.conf` | Template for the `idp` domain |
 | `apt/` | forky source and pin so only SSSD packages come from forky |
 | `ssh/` | sshd drop in enabling keyboard-interactive for the device code prompt |
+| `docs/screenshots/` | Walkthrough screens used in this README |
 | `.github/workflows/ci.yml` | Build, test, then `iato check --host` against SSSD in a Debian forky container |
 
 ## Branches
