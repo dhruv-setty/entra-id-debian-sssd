@@ -1,0 +1,25 @@
+$ iato check --config sssd.conf
+sssd.conf: ok
+$ sed -e "/^\[sssd\]/a config_file_version = 2" -e "s/^idp_client_id = .*/idp_client_id = __CLIENT_ID__/" -e "s#https://login#http://login#" sssd.conf > broken.conf
+$ diff sssd.conf broken.conf
+3a4
+> config_file_version = 2
+21c22
+< idp_client_id = 11111111-1111-1111-1111-111111111111
+---
+> idp_client_id = __CLIENT_ID__
+24,25c25,26
+< idp_token_endpoint = https://login.microsoftonline.com/00000000-0000-0000-0000-000000000000/oauth2/v2.0/token
+< idp_device_auth_endpoint = https://login.microsoftonline.com/00000000-0000-0000-0000-000000000000/oauth2/v2.0/devicecode
+---
+> idp_token_endpoint = http://login.microsoftonline.com/00000000-0000-0000-0000-000000000000/oauth2/v2.0/token
+> idp_device_auth_endpoint = http://login.microsoftonline.com/00000000-0000-0000-0000-000000000000/oauth2/v2.0/devicecode
+[exit status 1]
+$ iato check --config broken.conf
+error: unrendered placeholder __CLIENT_ID__
+error: config_file_version is rejected by SSSD 2.13; remove it
+error: idp_token_endpoint must be an https URL
+error: idp_device_auth_endpoint must be an https URL
+error: idp_client_id is not a GUID
+broken.conf: 5 error(s)
+[exit status 1]

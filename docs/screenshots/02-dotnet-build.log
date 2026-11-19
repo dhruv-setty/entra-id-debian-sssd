@@ -1,0 +1,17 @@
+$ dotnet --version
+11.0.100
+$ dotnet build -c Release -p:GenerateFullPaths=false
+  Determining projects to restore...
+  Restored /home/runner/work/Intent-Auditable-Trust-Object-V2/Intent-Auditable-Trust-Object-V2/src/Iato/Iato.csproj (in 6 ms).
+  Restored /home/runner/work/Intent-Auditable-Trust-Object-V2/Intent-Auditable-Trust-Object-V2/tests/Iato.Tests/Iato.Tests.csproj (in 1.15 sec).
+  Iato -> /home/runner/work/Intent-Auditable-Trust-Object-V2/Intent-Auditable-Trust-Object-V2/src/Iato/bin/Release/net8.0/iato.dll
+SssdConfigTests.cs(19,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [/home/runner/work/Intent-Auditable-Trust-Object-V2/Intent-Auditable-Trust-Object-V2/tests/Iato.Tests/Iato.Tests.csproj]
+  Iato.Tests -> /home/runner/work/Intent-Auditable-Trust-Object-V2/Intent-Auditable-Trust-Object-V2/tests/Iato.Tests/bin/Release/net8.0/Iato.Tests.dll
+
+Build succeeded.
+
+SssdConfigTests.cs(19,9): warning xUnit2029: Do not use Assert.Empty to check if a value does not exist in a collection. Use Assert.DoesNotContain instead. (https://xunit.net/xunit.analyzers/rules/xUnit2029) [/home/runner/work/Intent-Auditable-Trust-Object-V2/Intent-Auditable-Trust-Object-V2/tests/Iato.Tests/Iato.Tests.csproj]
+    1 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:02.21

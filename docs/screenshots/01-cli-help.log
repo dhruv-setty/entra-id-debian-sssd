@@ -1,0 +1,18 @@
+$ iato version
+2.0.1
+$ iato --help
+iato: Entra ID sign in for Debian through the SSSD idp provider
+
+Usage:
+  iato register-app [--name sssd-debian-hosts] [--out entra-app.env]
+  iato render --env entra-app.env --group <entra group> [--provider idp] [--out sssd.conf]
+  iato check [--config /etc/sssd/sssd.conf] [--provider idp] [--host]
+  iato install --env entra-app.env --group <entra group> [--provider idp]
+  iato verify <user@tenant>
+  iato version
+
+register-app reads a Graph token from IATO_GRAPH_TOKEN or 'az account get-access-token'.
+Files holding the client secret are written with mode 0600.
+$ iato register-app --name sssd-debian-hosts --out entra-app.env
+iato: no Graph token: run 'az login' or set IATO_GRAPH_TOKEN
+[exit status 1]

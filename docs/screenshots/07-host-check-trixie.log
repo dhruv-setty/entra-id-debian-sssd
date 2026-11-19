@@ -1,0 +1,17 @@
+$ docker exec trixie grep PRETTY_NAME /etc/os-release
+PRETTY_NAME="Debian GNU/Linux 13 (trixie)"
+$ docker exec trixie dpkg-query -W sssd-common
+sssd-common	2.10.1-2+b1
+$ docker exec trixie apt-cache policy sssd-idp
+sssd-idp:
+  Installed: (none)
+  Candidate: 2.10.1-2+b1
+  Version table:
+     2.10.1-2+b1 500
+        500 http://deb.debian.org/debian trixie/main amd64 Packages
+$ docker exec trixie iato render --env /root/entra-app.env --group linux-admins --out /etc/sssd/sssd.conf
+$ docker exec trixie iato check --config /etc/sssd/sssd.conf --host
+error: SSSD 2.10.1 has no idp provider; 2.11.0 or later is required
+error: libsss_idp.so not found; install sssd-idp
+/etc/sssd/sssd.conf: 2 error(s)
+[exit status 1]

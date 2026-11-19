@@ -1,0 +1,10 @@
+$ docker exec forky grep PRETTY_NAME /etc/os-release
+PRETTY_NAME="Debian GNU/Linux forky/sid"
+$ docker exec forky dpkg-query -W sssd-common sssd-idp
+sssd-common	2.13.1-5
+sssd-idp	2.13.1-5
+$ docker exec forky iato render --env /root/entra-app.env --group linux-admins --out /etc/sssd/sssd.conf
+$ docker exec forky ls -l /etc/sssd/sssd.conf
+-rw------- 1 root root 1373 Nov 19 02:34 /etc/sssd/sssd.conf
+$ docker exec forky iato check --config /etc/sssd/sssd.conf --host
+/etc/sssd/sssd.conf: ok
