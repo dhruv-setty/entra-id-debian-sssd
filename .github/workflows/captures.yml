@@ -1,0 +1,136 @@
+# Produces the README figures on a real X display (Xvfb). Each figure is an xterm window
+# running the commands it shows, captured with ImageMagick `import`. Nothing is drawn by hand.
+# The capture script lives in this file so that the repository tracks no shell sources.
+name: captures
+on:
+  push:
+    branches: [main]
+    paths: ["src/**", "tests/**", "sssd/**", "apt/**", "ssh/**", ".github/workflows/captures.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Install X tools
+        run: sudo apt-get update && sudo apt-get install -y xvfb xterm xdotool imagemagick fonts-dejavu
+      - name: Publish iato and prepare the Debian containers
+        run: |
+          dotnet publish src/Iato -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -o "$RUNNER_TEMP/out"
+          sudo install -m 0755 "$RUNNER_TEMP/out/iato" /usr/local/bin/iato
+          # Placeholder identifiers, the same values the ci workflow uses. No tenant is contacted.
+          demo="$RUNNER_TEMP/demo"; mkdir -p "$demo"
+          printf 'TENANT_ID=00000000-0000-0000-0000-000000000000\nCLIENT_ID=11111111-1111-1111-1111-111111111111\nCLIENT_SECRET=ci-placeholder\n' > "$demo/entra-app.env"
+          chmod 600 "$demo/entra-app.env"
+          for c in forky trixie; do
+            docker run -d --name "$c" "debian:$c" sleep infinity
+            pkgs="sssd sssd-tools"; [ "$c" = forky ] && pkgs="$pkgs sssd-idp"
+            docker exec "$c" sh -c "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $pkgs >/dev/null"
+            docker cp /usr/local/bin/iato "$c:/usr/local/bin/iato"
+            docker cp "$demo/entra-app.env" "$c:/root/entra-app.env"
+          done
+      - name: Capture figures on Xvfb
+        run: |
+          export SHOTS="$GITHUB_WORKSPACE/docs/screenshots" LOGS="$RUNNER_TEMP/logs" DEMO="$RUNNER_TEMP/demo"
+          rm -rf "$SHOTS"; mkdir -p "$SHOTS" "$LOGS" /tmp/bodies
+
+          # p runs one command after printing it, and records both in the figure's text log.
+          cat > /tmp/lib.sh <<'EOF'
+          p() {
+            printf '\033[1;32m$\033[0m %s\n' "$1"; printf '$ %s\n' "$1" >> "$LOG"
+            { eval "$1"; } 2>&1 | tee -a "$LOG"; local rc=${PIPESTATUS[0]}
+            if [ "$rc" -ne 0 ]; then printf '\033[33m[exit status %d]\033[0m\n' "$rc"; printf '[exit status %d]\n' "$rc" >> "$LOG"; fi
+            return 0
+          }
+          EOF
+
+          cat > /tmp/bodies/01-cli-help <<'EOF'
+          cd "$DEMO"
+          p 'iato version'
+          p 'iato --help'
+          p 'iato register-app --name sssd-debian-hosts --out entra-app.env'
+          EOF
+
+          cat > /tmp/bodies/02-dotnet-build <<'EOF'
+          cd "$GITHUB_WORKSPACE"
+          p 'dotnet --version'
+          p 'dotnet build -c Release'
+          EOF
+
+          cat > /tmp/bodies/03-dotnet-test <<'EOF'
+          cd "$GITHUB_WORKSPACE"
+          p 'dotnet test -c Release --no-build --logger "console;verbosity=normal"'
+          EOF
+
+          cat > /tmp/bodies/04-render-sssd-conf <<'EOF'
+          cd "$DEMO"
+          p 'cat entra-app.env'
+          p 'iato render --env entra-app.env --group linux-admins --out sssd.conf'
+          p 'ls -l sssd.conf'
+          p 'cat sssd.conf'
+          EOF
+
+          cat > /tmp/bodies/05-check-config <<'EOF'
+          cd "$DEMO"
+          p 'iato check --config sssd.conf'
+          p 'sed -e "/^\[sssd\]/a config_file_version = 2" -e "s/^idp_client_id = .*/idp_client_id = __CLIENT_ID__/" -e "s#https://login#http://login#" sssd.conf > broken.conf'
+          p 'diff sssd.conf broken.conf'
+          p 'iato check --config broken.conf'
+          EOF
+
+          cat > /tmp/bodies/06-host-check-forky <<'EOF'
+          p 'docker exec forky grep PRETTY_NAME /etc/os-release'
+          p 'docker exec forky dpkg-query -W sssd-common sssd-idp'
+          p 'docker exec forky iato render --env /root/entra-app.env --group linux-admins --out /etc/sssd/sssd.conf'
+          p 'docker exec forky ls -l /etc/sssd/sssd.conf'
+          p 'docker exec forky iato check --config /etc/sssd/sssd.conf --host'
+          EOF
+
+          cat > /tmp/bodies/07-host-check-trixie <<'EOF'
+          p 'docker exec trixie grep PRETTY_NAME /etc/os-release'
+          p 'docker exec trixie dpkg-query -W sssd-common'
+          p 'docker exec trixie apt-get install --simulate sssd-idp'
+          p 'docker exec trixie iato render --env /root/entra-app.env --group linux-admins --out /etc/sssd/sssd.conf'
+          p 'docker exec trixie iato check --config /etc/sssd/sssd.conf --host'
+          EOF
+
+          export DISPLAY=:99
+          Xvfb :99 -screen 0 1920x1600x24 -nolisten tcp & sleep 2
+
+          shot() { # name cols x rows, title
+            local name=$1 geom=$2 title=$3
+            rm -f /tmp/done
+            xterm -geometry "$geom+0+0" -fa 'DejaVu Sans Mono' -fs 10 -bg '#1e1e1e' -fg '#d4d4d4' -T "$title" \
+              -e bash --norc -c "source /tmp/lib.sh; export LOG=$LOGS/$name.log; source /tmp/bodies/$name; printf '\033[?25l'; touch /tmp/done; exec sleep 900" &
+            local pid=$!
+            for _ in $(seq 1 600); do [ -f /tmp/done ] && break; sleep 1; done
+            sleep 3
+            local wid; wid=$(xdotool search --name "^$title\$" | head -1)
+            import -window "$wid" "$SHOTS/$name.png"
+            kill "$pid" || true; sleep 1
+          }
+
+          shot 01-cli-help          130x34 'iato: help and version'
+          shot 02-dotnet-build      150x24 'dotnet build'
+          shot 03-dotnet-test       150x30 'dotnet test'
+          shot 04-render-sssd-conf  120x64 'iato render'
+          shot 05-check-config      140x48 'iato check'
+          shot 06-host-check-forky  130x20 'iato check --host: Debian forky'
+          shot 07-host-check-trixie 130x26 'iato check --host: Debian trixie'
+
+          cp "$LOGS"/*.log "$SHOTS/"
+          for f in "$LOGS"/*.log; do echo "== $f"; cat "$f"; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: iato-captures
+          path: docs/screenshots
