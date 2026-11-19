@@ -63,7 +63,7 @@ jobs:
           cat > /tmp/bodies/02-dotnet-build <<'EOF'
           cd "$GITHUB_WORKSPACE"
           p 'dotnet --version'
-          p 'dotnet build -c Release'
+          p 'dotnet build -c Release -p:GenerateFullPaths=false'
           EOF
 
           cat > /tmp/bodies/03-dotnet-test <<'EOF'
@@ -98,7 +98,7 @@ jobs:
           cat > /tmp/bodies/07-host-check-trixie <<'EOF'
           p 'docker exec trixie grep PRETTY_NAME /etc/os-release'
           p 'docker exec trixie dpkg-query -W sssd-common'
-          p 'docker exec trixie apt-get install --simulate sssd-idp'
+          p 'docker exec trixie apt-cache policy sssd-idp'
           p 'docker exec trixie iato render --env /root/entra-app.env --group linux-admins --out /etc/sssd/sssd.conf'
           p 'docker exec trixie iato check --config /etc/sssd/sssd.conf --host'
           EOF
@@ -120,12 +120,12 @@ jobs:
           }
 
           shot 01-cli-help          130x34 'iato: help and version'
-          shot 02-dotnet-build      150x24 'dotnet build'
-          shot 03-dotnet-test       150x30 'dotnet test'
-          shot 04-render-sssd-conf  120x64 'iato render'
-          shot 05-check-config      140x48 'iato check'
+          shot 02-dotnet-build      200x24 'dotnet build'
+          shot 03-dotnet-test       170x30 'dotnet test'
+          shot 04-render-sssd-conf  132x64 'iato render'
+          shot 05-check-config      180x40 'iato check'
           shot 06-host-check-forky  130x20 'iato check --host: Debian forky'
-          shot 07-host-check-trixie 130x26 'iato check --host: Debian trixie'
+          shot 07-host-check-trixie 130x24 'iato check --host: Debian trixie'
 
           cp "$LOGS"/*.log "$SHOTS/"
           for f in "$LOGS"/*.log; do echo "== $f"; cat "$f"; done
